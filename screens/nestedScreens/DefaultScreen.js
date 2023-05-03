@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { onSnapshot, collection, query } from "firebase/firestore";
+import { db } from "../../../firebase/config";
 import {
   View,
   StyleSheet,
@@ -10,26 +13,61 @@ import {
 
 import { Feather } from "@expo/vector-icons";
 
-const DefaultScreen = ({ route, navigation }) => {
+const DefaultScreenPosts = ({ navigation, route }) => {
   const [posts, setPosts] = useState([]);
+  const [commentsCount, setCommentsCount] = useState({});
+
+  const { email, login, photo } = useSelector((state) => state.auth);
+
+  const getAllPost = async () => {
+    try {
+      onSnapshot(collection(db, "posts"), (data) => {
+        const posts = data.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+        setPosts(posts);
+        posts.forEach((post) => {
+          getCommentsCount(post.id);
+        });
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   useEffect(() => {
-    if (route.params) {
-      setPosts((prevState) => [...prevState, route.params]);
+    getAllPost();
+  }, []);
+
+  useEffect(() => {
+    if (route.params?.commentsCount) {
+      setCommentsCount((prev) => ({
+        ...prev,
+        [route.params.postID]: route.params.commentsCount,
+      }));
     }
   }, [route.params]);
 
-  // console.log(posts);
+  const getCommentsCount = async (postID) => {
+    try {
+      const commentsRef = collection(db, `posts/${postID}/comments`);
+      const queryRef = query(commentsRef);
+      const unsubscribe = onSnapshot(queryRef, (querySnapshot) => {
+        const commentsCount = querySnapshot.docs.length;
+        setCommentsCount((prev) => ({ ...prev, [postID]: commentsCount }));
+      });
+      return () => unsubscribe();
+    } catch (error) {
+      console.log(error);
+      setCommentsCount((prev) => ({ ...prev, [postID]: 0 }));
+    }
+  };
+  console.log(posts);
   return (
     <View style={styles.container}>
       <View style={styles.wrapperUser}>
-        <Image
-          source={require("../../assets/images/photo.png")}
-          style={styles.userPhoto}
-        />
+        <Image source={{ uri: photo }} style={styles.userPhoto} />
         <View style={{ flexDirection: "column" }}>
-          <Text style={styles.userName}>Natali Romanova</Text>
-          <Text style={styles.userEmail}>email@example.com</Text>
+          <Text style={styles.userName}>{login}</Text>
+          <Text style={styles.userEmail}>{email}</Text>
         </View>
       </View>
       <FlatList
@@ -39,37 +77,52 @@ const DefaultScreen = ({ route, navigation }) => {
           <View
             style={{
               marginBottom: 30,
-              justifyContent: "center",
-              alignItems: "center",
             }}
           >
-            <View style={styles.wrapper}>
-              <Image source={{ uri: item.photo }} style={styles.image} />
-              <Text style={styles.title}>{item.title}</Text>
-            </View>
-
-            <View style={styles.mapComments}>
-              <TouchableOpacity onPress={() => navigation.navigate("Comments")}>
-                <Feather
-                  name="message-circle"
-                  size={18}
-                  color="#BDBDBD"
-                  style={styles.commentsIcon}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => navigation.navigate("Map")}
-                style={styles.map}
-              >
-                <Feather
-                  name="map-pin"
-                  size={18}
-                  color="#BDBDBD"
-                  style={styles.mapIcon}
-                />
-                <Text style={styles.textMap}>{item.location}</Text>
-              </TouchableOpacity>
+            <Image source={{ uri: item.photo }} style={styles.image} />
+            <Text style={styles.title}>{item.formValues.title}</Text>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: 11,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("Comments", {
+                      postID: item.id,
+                      photo: item.photo,
+                    })
+                  }
+                >
+                  <Feather
+                    name="message-circle"
+                    size={24}
+                    color={commentsCount[item.id] > 0 ? "#FF6C00" : "#BDBDBD"}
+                  />
+                </TouchableOpacity>
+                <Text style={styles.commentsCount}>
+                  {commentsCount[item.id] || 0}
+                </Text>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("Map", {
+                      location: item.location,
+                      title: item.formValues.title,
+                    })
+                  }
+                >
+                  <Feather name="map-pin" size={24} color="#BDBDBD" />
+                </TouchableOpacity>
+                <Text style={styles.locationText}>
+                  {item.formValues.location}
+                </Text>
+              </View>
             </View>
           </View>
         )}
@@ -77,17 +130,45 @@ const DefaultScreen = ({ route, navigation }) => {
     </View>
   );
 };
-export default DefaultScreen;
+export default DefaultScreenPosts;
 
 const styles = StyleSheet.create({
-  wrapper: {
-    width: 353,
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
   },
+  title: {
+    fontSize: 16,
+    lineHeight: 19,
+    color: "#212121",
+    marginRight: "auto",
+    marginTop: 8,
+  },
+
+  locationText: {
+    fontSize: 16,
+    lineHeight: 19,
+    color: "#212121",
+    marginLeft: 8,
+    textDecorationLine: "underline",
+  },
+  commentsCount: {
+    fontSize: 16,
+    lineHeight: 19,
+    color: "#212121",
+    marginLeft: 9,
+  },
+  image: {
+    width: "100%",
+    height: 240,
+    borderRadius: 8,
+  },
+
   wrapperUser: {
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 32,
-    width: 353,
   },
   userPhoto: {
     marginRight: 8,
@@ -105,45 +186,6 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 11,
     lineHeight: 13,
-    textShadowColor: "rgba(0, 0, 0, 0.25)",
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 4,
-  },
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-  },
-  title: {
-    fontSize: 16,
-    lineHeight: 19,
-    color: "#212121",
-    marginRight: "auto",
-    marginTop: 8,
-  },
-  image: { width: 353, height: 240, borderRadius: 8 },
-  map: {
-    position: "relative",
-  },
-  mapIcon: {
-    position: "absolute",
-  },
-  textMap: {
-    flex: 1,
-    justifyContent: "space-between",
-    marginLeft: 20,
-    fontSize: 16,
-    lineHeight: 19,
-    color: "#212121",
-    textAlign: "right",
-    textDecorationLine: "underline",
-  },
-  mapComments: {
-    marginTop: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    width: 353,
+    color: "rgba(33, 33, 33, 0.8)",
   },
 });

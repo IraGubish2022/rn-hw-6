@@ -15,6 +15,12 @@ import {
 
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
+import { useDispatch } from "react-redux";
+import * as ImagePicker from "expo-image-picker"
+
+import { authSignUpUser } from "../../redux/auth/authOperations";
+import { storage } from "../../firebase/config";
+import { uploadBytes, ref, getDownloadURL } from "firebase/storage";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -22,15 +28,24 @@ const initialState = {
   login: "",
   email: "",
   password: "",
+  imageUri: null,
 };
 
 export default function RegistrationScreen({ navigation }) {
+  const [photo, setPhoto] = useState(null);
   const [isShowKeyboard, setIsShowKeyboard] = useState(false);
   const [state, setState] = useState(initialState);
   const [fontsLoaded] = useFonts({
     "Roboto-Regular": require("../../assets/fonts/Roboto-Regular.ttf"),
     "Roboto-Medium": require("../../assets/fonts/Roboto-Medium.ttf"),
   });
+  const [isFocus, setIsFocus] = useState({
+    login: false,
+    email: false,
+    password: false,
+  });
+  const dispatch = useDispatch();
+  const [isSecureEntry, setIsSecureEntry] = useState(true);
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
@@ -42,11 +57,64 @@ export default function RegistrationScreen({ navigation }) {
     return null;
   }
 
-  function keyboardHide() {
-    setIsShowKeyboard(false);
-    Keyboard.dismiss();
-    console.log(state);
-    setState(initialState);
+  const handleAddImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("Sorry, we need camera roll permissions to make this work!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (result.assets.length > 0) {
+      setPhoto(result.assets[0]);
+    }
+  };
+
+  const uploadPhotoToServer = async () => {
+    try {
+      const response = await fetch(photo.uri);
+      const file = await response.blob();
+      const uniquePostId = Date.now().toString();
+      const storageRef = ref(storage, `profilePictures/${uniquePostId}`);
+      await uploadBytes(storageRef, file);
+      const processedPhoto = await getDownloadURL(storageRef);
+      console.log("processedPhoto", processedPhoto);
+      return processedPhoto;
+    } catch (error) {
+      console.log(error.message);
+    }
+  };
+  const clearPhoto = () => {
+    setPhoto(null);
+  };
+
+  async function handleSubmit() {
+    try {
+      const processedPhoto = photo ? await uploadPhotoToServer() : null;
+
+      const user = {
+        login: state.login,
+        email: state.email,
+        password: state.password,
+        photo: processedPhoto,
+      };
+
+      dispatch(authSignUpUser(user));
+      setState({
+        login: "",
+        email: "",
+        password: "",
+      });
+      setPhoto(null);
+    } catch (error) {
+      console.log(error.message);
+    }
   }
 
   return (

@@ -1,26 +1,20 @@
 //import "react-native-gesture-handler";
-import React from "react";
-import { Button, Image } from "react-native";
+// import React from "react";
+import { TouchableOpacity } from "react-native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { AntDesign } from "@expo/vector-icons";
-import { Fontisto } from "@expo/vector-icons";
-import { SimpleLineIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
+
+import LoginScreen from "./screens/auth/LoginScreen";
+import RegistrationScreen from "./screens/auth/RegistrationScreen";
+import PostsScreen from "./screens/mainScreen/PostsScreen";
+import CreateScreen from "./screens/mainScreen/CreatePostsScreen";
+import ProfileScreen from "./screens/mainScreen/ProfileScreen";
 
 const AuthStack = createStackNavigator();
 const MainTab = createBottomTabNavigator();
 
-import LoginScreen from "./screens/auth/LoginScreen";
-import RegistrationScreen from "./screens/auth/RegistrationScreen";
-
-import PostsScreen from "./screens/mainScreen/PostsScreen";
-import CreateScreen from "./screens/mainScreen/CreatePostsScreen";
-import ProfileScreen from "./screens/mainScreen/ProfileScreen";
-import HomeScreen from "./screens/mainScreen/Home";
-import CommentsScreen from "./screens/mainScreen/CommentsScreen";
-import MapScreen from "./screens/mainScreen/MapScreen";
-
-export const useRoute = (isAuth) => {
+const useRoute = (isAuth) => {
   if (!isAuth) {
     return (
       <AuthStack.Navigator>
@@ -37,70 +31,69 @@ export const useRoute = (isAuth) => {
       </AuthStack.Navigator>
     );
   }
+
   return (
     <MainTab.Navigator
-      initialRouteName="Home"
-      name="Home"
-      component={HomeScreen}
       screenOptions={{
         tabBarShowLabel: false,
-        tabBarIcon: ({ focused, color, size }) => {
-          <FontAwesome name={iconName} size={size} color={color} />;
+        tabBarStyle: {
+          height: 83,
+          display: "flex",
+          gap: 30,
+          paddingHorizontal: 80,
+          paddingTop: 9,
         },
-        tabBarItemStyle: {
-          borderRadius: "20px",
-        },
-        tabBarActiveBackgroundColor: {
-          backgroundColor: "orange",
-          padding: "10px",
-        },
-        tapBarActiveTintColor: "#FFFFFF",
-        title: "Home",
       }}
     >
       <MainTab.Screen
-        options={() => ({
-          //title: "Публикации",
-          // headerRight: () => (
-          //   <Image
-          //     source={require("./assets/images/log-out.png")}
-          //     style={{ marginRight: 15 }}
-          //   />
-          // ),
+        options={{
           headerShown: false,
-          tabBarIcon: ({ focused, color, size }) => (
-            <AntDesign name="appstore-o" size={size} color={color} />
+          tabBarIcon: ({ focused, size, color }) => (
+            <Feather name="grid" size={size} color={color} />
           ),
-        })}
+          tabBarItemStyle: { borderRadius: "20px", height: 40, width: 70 },
+          tabBarActiveBackgroundColor: "#FF6C00",
+          tabBarActiveTintColor: "#FFFFFF",
+        }}
         name="Posts"
         component={PostsScreen}
       />
       <MainTab.Screen
-        options={() => ({
-          title: "Создать публикацию",
+        options={({ navigation }) => ({
           headerLeft: () => (
-            <Image
-              source={require("./assets/images/arrow-left.png")}
-              style={{ marginLeft: 16, width: 24, height: 24 }}
-            />
+            <TouchableOpacity
+              style={{ marginLeft: 20 }}
+              onPress={() => navigation.goBack()}
+            >
+              <Feather name="arrow-left" size={24} color="black" />
+            </TouchableOpacity>
           ),
-          tabBarIcon: ({ focused, color, size }) => (
-            <Fontisto name="plus-a" size={size} color={color} />
+          tabBarIcon: ({ focused, size, color }) => (
+            <Feather name="plus" size={size} color={color} />
           ),
+          tabBarItemStyle: { borderRadius: "20px", height: 40, width: 70 },
+          tabBarActiveBackgroundColor: "#FF6C00",
+          tabBarActiveTintColor: "#FFFFFF",
+          title: "Create Post",
+          tabBarStyle: { display: "none" },
         })}
         name="Create"
         component={CreateScreen}
       />
       <MainTab.Screen
-        options={() => ({
-          headerShown: false,
-          tabBarIcon: ({ focused, color, size }) => (
-            <SimpleLineIcons name="user" size={size} color={color} />
+        options={{
+          tabBarIcon: ({ focused, size, color }) => (
+            <Feather name="user" size={size} color={color} />
           ),
-        })}
+          tabBarItemStyle: { borderRadius: "20px", height: 40, width: 70 },
+          tabBarActiveBackgroundColor: "#FF6C00",
+          tabBarActiveTintColor: "#FFFFFF",
+          headerShown: false,
+        }}
         name="Profile"
         component={ProfileScreen}
       />
     </MainTab.Navigator>
   );
 };
+export default useRoute;

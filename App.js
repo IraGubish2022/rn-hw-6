@@ -1,11 +1,15 @@
-//import React from 'react';
-//import { StatusBar } from 'expo-status-bar';
-import 'react-native-gesture-handler';
-// import { StyleSheet } from 'react-native';
-import { NavigationContainer } from "@react-navigation/native";
-import { useRoute } from "./route";
+import { StyleSheet } from "react-native";
+import { Provider } from "react-redux";
+import { store } from "./src/redux/store";
+import Main from "./src/components/Main.js";
 
 export default function App() {
-  const routing = useRoute(true);
-  return <NavigationContainer>{routing}</NavigationContainer>;
+  return (
+    <Provider store={store}>
+      <Main />
+    </Provider>
+  );
 }
+
+const styles = StyleSheet.create({});
+
