@@ -18,10 +18,10 @@ import {
 
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-import formatDate from "../../../utils/formatDate";
+import formatDate from "../../utils/formatDate";
 
 import { collection, addDoc, onSnapshot, query } from "firebase/firestore";
-import { db } from "../../../firebase/config";
+import { db } from "../../firebase/config";
 
 const CommentsScreen = ({ route, navigation }) => {
   const [comment, setComment] = useState("");

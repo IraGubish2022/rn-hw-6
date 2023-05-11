@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { onSnapshot, collection, query } from "firebase/firestore";
-import { db } from "../../../firebase/config";
+import { db } from "../../firebase/config";
 import {
   View,
   StyleSheet,

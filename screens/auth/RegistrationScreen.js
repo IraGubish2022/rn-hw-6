@@ -10,9 +10,10 @@ import {
   Keyboard,
   ImageBackground,
   Image,
-  Button,
+  Alert,
 } from "react-native";
 
+import { nanoid } from "nanoid";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useDispatch } from "react-redux";
@@ -21,6 +22,12 @@ import * as ImagePicker from "expo-image-picker"
 import { authSignUpUser } from "../../redux/auth/authOperations";
 import { storage } from "../../firebase/config";
 import { uploadBytes, ref, getDownloadURL } from "firebase/storage";
+
+import {
+  loginValidation,
+  passwordValidation,
+  emailValidation,
+} from "../../shared/validation";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -57,6 +64,19 @@ export default function RegistrationScreen({ navigation }) {
     return null;
   }
 
+  function submitForm() {
+    if (
+      loginValidation(state) &&
+      passwordValidation(state) &&
+      emailValidation(state)
+    ) {
+      console.log("state in register", state);
+      const formData = { ...state };
+      dispatch(authSignUpUser(formData));
+      setState(initialState);
+    } else return;
+  }
+
   const handleAddImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -71,8 +91,26 @@ export default function RegistrationScreen({ navigation }) {
       quality: 1,
     });
 
-    if (result.assets.length > 0) {
-      setPhoto(result.assets[0]);
+    // if (result.assets.length > 0) {
+    //   setPhoto(result.assets[0]);
+    // }
+    if (!result.canceled) {
+      try {
+        const imageUrl = result.assets[0].uri;
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        // download selected photo
+        const avatarID = nanoid();
+        const avatarRef = ref(storage, `temp/${avatarID}`);
+        await uploadBytes(avatarRef, blob);
+        const downloadURL = await getDownloadURL(avatarRef);
+        // additional code for setting avatar
+        setState((prevState) => ({ ...prevState, userAvatar: downloadURL }));
+        Alert.alert("Successfully uploaded");
+      } catch (error) {
+        console.error(error);
+        Alert.alert("Error uploading image");
+      }
     }
   };
 
@@ -190,7 +228,8 @@ export default function RegistrationScreen({ navigation }) {
               <TouchableOpacity
                 activeOpacity={0.8}
                 style={styles.button}
-                onPress={keyboardHide}
+                onPress={submitForm}
+                // onPress={keyboardHide}
               >
                 <Text 
                 style={styles.textButton}
